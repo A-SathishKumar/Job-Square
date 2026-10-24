@@ -10,7 +10,7 @@ export function Hero() {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const heroImagePath = '/src/assets/images/startup_founders_loft_1792762668871.jpg';
+  const heroImagePath = 'src\\assets\\images\\startup_founders_loft_1792762668871.jpg';
 
   const scrollToContact = () => {
     const el = document.getElementById('contact');
