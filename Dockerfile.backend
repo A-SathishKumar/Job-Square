@@ -1,0 +1,38 @@
+# Multi-Stage Hardened Production Dockerfile for Job Square Backend
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Install security updates
+RUN apk update && apk upgrade && apk add --no-cache dumb-init
+
+# Copy dependency manifests
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy application source
+COPY server/ ./server/
+COPY server.ts ./
+COPY tsconfig.json ./
+
+# Production Runner Stage
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Run as non-root user (OWASP Container Hardening)
+USER node
+
+COPY --chown=node:node --from=builder /usr/bin/dumb-init /usr/bin/dumb-init
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/package.json ./package.json
+COPY --chown=node:node --from=builder /app/server ./server
+COPY --chown=node:node --from=builder /app/server.ts ./server.ts
+COPY --chown=node:node --from=builder /app/tsconfig.json ./tsconfig.json
+
+EXPOSE 5000
+
+# Use dumb-init to properly forward signals to Node
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["node", "--loader", "tsx", "server/server.ts"]
